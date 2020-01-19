@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <title>Smart Cities</title>
+        <!--SCRIPTS -->
+        <meta name="viewport" charset="UTF-8" content="initial-scale=1.0, width=device-width" />
+        <script type="text/javascript" src="https://js.api.here.com/v3/3.1/mapsjs-core.js"></script>
+        <script type="text/javascript" src="https://js.api.here.com/v3/3.1/mapsjs-service.js"></script>
+        <script type="text/javascript" src="https://js.api.here.com/v3/3.1/mapsjs-ui.js"></script>
+        <script type="text/javascript" src="https://js.api.here.com/v3/3.1/mapsjs-mapevents.js"></script>
+        <link rel="stylesheet" type="text/css" href="https://js.api.here.com/v3/3.1/mapsjs-ui.css"/>
+    </head>
+    <body>
+        <h1 style="text-align: center;">House Hunting 2020</h1style="text-align: center;"></h1>
+        <form style="float: left">
+            <h3>Please enter data</h3> <br>
+            Address: <input id="address" type="text" size="25"/><br>
+            Link: <input id="link" type="text" size="28"/><br>
+            Warm Rent: <input id="rent" type="text" size="22"/><br><br><br>
+            <input type="button" value="Add house" onclick="insert()"/>
+            <input type="button" value="Display houses" onclick="dispHouses()" />
+        </form>
+        <div id="map" style= "float: right; width: 80vw; height: 100vh; background: #39B6B3;" ></div> 
+
+        <script>
+
+            var platform = new H.service.Platform({
+                apikey: "eD_IzP_4psnri8dg2gg3-AdnamvR5vriLzfDccLfW1A"
+            });
+
+            // Obtain the default map types from the platform object:
+
+            var defaultLayers = platform.createDefaultLayers();
+            var myPos = {lat: 52.53086, lng: 13.38474};
+
+            // Instantiate (and display) a map object:
+
+            var map = new H.Map(
+                document.getElementById('map'),
+                defaultLayers.vector.normal.map,
+                {
+                    zoom: 11,
+                    center: myPos
+                });
+
+            var ui = H.ui.UI.createDefault(map, defaultLayers);
+
+            var mapEvents = new H.mapevents.MapEvents(map);
+
+            var behavior = new H.mapevents.Behavior(mapEvents);
+
+            var geocoder = platform.getGeocodingService();
+            // var i=0;
+
+            // create a marker object 
+
+            posMarker = new H.map.Marker(myPos);
+
+            posMarker.setData("HERE Berlin");
+            
+            // Add the marker to the map 
+
+            map.addObject(posMarker);
+
+            // Create the parameters for the geocoding request:
+            var houses= [];
+            var addressInput=document.getElementById("address");
+            var linkInput=document.getElementById("link");
+            var rentInput=document.getElementById("rent");
+
+            
+            
+            function insert ( ) {
+
+                // console.log(housesInput);
+                var housesInput={
+                    address:addressInput.value,
+                    link:linkInput.value,
+                    rent:rentInput.value 
+                };
+                houses.push( housesInput);
+                // link.push( linkInput.value );
+                // rent.push( rentInput.value );
+                
+                console.log(houses)
+                // geocoder.geocode({ searchText:houses[houses.length].address}, onResult1.bind(this, houses[houses.length]), function(e) {
+                //     alert(e);
+                // });
+
+            }
+
+
+
+            
+            // Define a callback function to process the geocoding response:
+            var onResult1= function(index,result) {
+                console.log(index)
+            var data,
+                position,
+                marker;
+            // Add a marker for each location found
+            position = {
+            lat: result.Response.View[0].Result[0].Location.DisplayPosition.Latitude,
+            lng: result.Response.View[0].Result[0].Location.DisplayPosition.Longitude
+            };
+            data = 
+            'address: '+index.address+
+            '\n'+
+            'rent: '+index.rent+
+            '\n'+
+            'link: '+ index.link;
+            marker = new H.map.Marker(position);
+            marker.setData(data);
+            map.addObject(marker);
+            };
+
+            
+            // Display marker on map for each address
+            function dispHouses() {
+                for (i=0; i<houses.length; i++){
+                    geocoder.geocode({ searchText:houses[i].address}, onResult1.bind(this, houses[i]), function(e) {
+                        alert(e);
+                    });
+                }      
+            }
+
+            function addInfoBubble(map){
+                map.addEventListener('tap', function (evt) {
+                var bubble =  new H.ui.InfoBubble(evt.target.getGeometry(), {
+                    // read custom data
+                    content: evt.target.getData()
+                });
+                    // show info bubble
+                ui.addBubble(bubble);
+                }, false);
+            }
+           
+
+            // dispHouses();
+            addInfoBubble(map);
+
+    
+            var myLoc = myPos.lat + ',' + myPos.lng;
+            var routingParams = {
+                'mode': 'fastest;car;traffic:enabled',
+                'start': myLoc,
+                'range': '7000', // 10 (10x60secs) minutes of driving 
+                'rangetype': 'distance'
+            };
+
+            // Define a callback function to process the isoline response.
+
+            var onResult = function(result) {
+                var center = new H.geo.Point(
+                    result.response.center.latitude,
+                    result.response.center.longitude),
+                isolineCoords = result.response.isoline[0].component[0].shape,
+                linestring = new H.geo.LineString(),
+                isolinePolygon,
+                isolineCenter;
+
+                // Add the returned isoline coordinates to a linestring:
+
+                isolineCoords.forEach(function(coords) {
+                    linestring.pushLatLngAlt.apply(linestring, coords.split(','))
+                })
+
+                // Create a polygon and a marker representing the isoline:
+
+                isolinePolygon = new H.map.Polygon(linestring);
+                
+                // Add the polygon and marker to the map:
+
+                map.addObject(isolinePolygon);
+
+                // Center and zoom the map so that the whole isoline polygon is
+                // in the viewport:
+
+                map.getViewModel().setLookAtData({bounds: isolinePolygon.getBoundingBox()});
+            }
+
+            // Get an instance of the routing service: 
+
+            var router = platform.getRoutingService();
+
+            // Call the Routing API to calculate an isoline:
+
+            router.calculateIsoline(
+                routingParams,
+                onResult,
+                function(error) {
+                    alert(error.message)
+                }
+            );
+        </script>
+    </body>
+</html>

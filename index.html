@@ -15,7 +15,6 @@
         <form style="float: left">
             <h3>Please enter data</h3> <br>
             Address: <input id="address" type="text" size="25"/><br>
-            Link: <input id="link" type="text" size="28"/><br>
             Warm Rent: <input id="rent" type="text" size="22"/><br><br><br>
             <input type="button" value="Add house" onclick="insert()"/>
             <input type="button" value="Display houses" onclick="dispHouses()" />
@@ -49,8 +48,14 @@
 
             var behavior = new H.mapevents.Behavior(mapEvents);
 
+
+            var style = new H.map.Style('https://kuberaspeaking.github.io/HouseHunting/pink.yaml','https://js.api.here.com/v3/3.1/styles/omv/');
+
+            map.getBaseLayer().getProvider().setStyle(style);
+
             var geocoder = platform.getGeocodingService();
-            // var i=0;
+            
+            
 
             // create a marker object 
 
@@ -65,7 +70,6 @@
             // Create the parameters for the geocoding request:
             var houses= [];
             var addressInput=document.getElementById("address");
-            var linkInput=document.getElementById("link");
             var rentInput=document.getElementById("rent");
 
             
@@ -75,12 +79,9 @@
                 // console.log(housesInput);
                 var housesInput={
                     address:addressInput.value,
-                    link:linkInput.value,
                     rent:rentInput.value 
                 };
                 houses.push( housesInput);
-                // link.push( linkInput.value );
-                // rent.push( rentInput.value );
                 
                 console.log(houses)
                 // geocoder.geocode({ searchText:houses[houses.length].address}, onResult1.bind(this, houses[houses.length]), function(e) {
@@ -106,9 +107,7 @@
             data = 
             'address: '+index.address+
             '\n'+
-            'rent: '+index.rent+
-            '\n'+
-            'link: '+ index.link;
+            'rent: '+index.rent;
             marker = new H.map.Marker(position);
             marker.setData(data);
             map.addObject(marker);

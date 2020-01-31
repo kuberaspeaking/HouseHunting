@@ -52,7 +52,7 @@
 
             var style = new H.map.Style('https://kuberaspeaking.github.io/HouseHunting/pink.yaml','https://js.api.here.com/v3/3.1/styles/omv/');
 
-            map.getBaseLayer().getProvider().setStyle(style);
+            // map.getBaseLayer().getProvider().setStyle(style);
 
             var geocoder = platform.getGeocodingService();
             
@@ -228,7 +228,7 @@
                 let api = "https://transit.ls.hereapi.com/v3/isochrone.json",
                 apiKey = "KUFJZlg1QpKnIqlMlodmDXeu7nNktr2-caRXFHpxgSI",
                 center = myLoc,
-                maxDur = "25",
+                maxDur = "20",
                 time = "2020-01-30T17:00:00",
 
                 url = `${api}?apiKey=${apiKey}&center=${center}&maxDur=${maxDur}&time=${time}`;
@@ -241,18 +241,44 @@
                     var isolineCoords = response.Res.Isochrone.IsoDest,
                         linestring = new H.geo.LineString(),
                         isolinePolygon;
+                    var points=[];
+                    var station; 
+                    var stationName;
+                    
 
                     for (i= 0; i < isolineCoords.length; i++){
-                        linestring.pushLatLngAlt.apply(linestring, linestring,isolineCoords[i].Stn[0].x,isolineCoords[i].Stn[0].y);
+                        if(isolineCoords[i].duration == "PT20M"){
+                            linestring.pushPoint({lat:isolineCoords[i].Stn[0].y, lng:isolineCoords[i].Stn[0].x});
 
+
+                            // station = new H.map.Marker({lat:isolineCoords[i].Stn[0].y, lng:isolineCoords[i].Stn[0].x});
+                            // stationName = 
+                            // 'name: '+isolineCoords[i].Stn[0].name+
+                            // '\n'+
+                            // 'time: '+isolineCoords[i].duration.charAt(2);
+                            // station.setData(stationName);
+                            // map.addObject(station);
+
+                        }
+                        
                     }
+
+                    // points.forEach(function(point) {
+                    //     linestring.pushPoint(point);
+                    // });
+
+
+
+                    // console.log(points);
+
+
 
                     // console.log(isolineCoords[0].Stn[0].x,isolineCoords[0].Stn[0].y);
                     // Create a polygon and a marker representing the isoline:
 
-                    isolinePolygon = new H.map.Polygon(linestring);
+                    isolinePolyline = new H.map.Polygon(linestring, { style: { lineWidth: 10 }});
                     
-                    map.addObject(isolinePolygon);
+                    map.addObject(isolinePolyline);
 
 
                 }, error => {

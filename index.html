@@ -16,10 +16,10 @@
             <h3>Please enter data</h3> <br>
             Address: <input id="address" type="text" size="25"/><br><br>
             Warm Rent: <input id="rent" type="text" size="22"/><br><br><br>
-            <input type="button" value="Add house" onclick="insert()"/>
-            <input type="button" value="Display houses" onclick="dispHouses()" />
+            <input type="button" value="Display houses" onclick="insert()"/>
+            <!-- <input type="button" value="Show Route" onclick="addPublicTransport()" /> -->
         </form>
-        <div id="map" style= "float: right; width: 80vw; height: 100vh; background: #39B6B3;" ></div> 
+        <div id="map" style= "float: right; width: 80vw; height: 90vh; background: #39B6B3;" ></div>
 
         <script>
 
@@ -28,7 +28,6 @@
             });
 
             // Obtain the default map types from the platform object:
-
             var defaultLayers = platform.createDefaultLayers();
             var myPos = {lat: 52.53086, lng: 13.38474};
             var myLoc = myPos.lat + ',' + myPos.lng;
@@ -49,6 +48,10 @@
 
             var behavior = new H.mapevents.Behavior(mapEvents);
 
+            var svgMarker = '<svg width="50" height="50" xmlns="http://www.w3.org/2000/svg"> <circle stroke="black" fill="#227305" cx="15" cy="15" r="12"/><text x="15" y="20" font-size="12pt" font-family="Arial" font-weight="bold" text-anchor="middle" fill="white">S</text></svg>';
+
+            var publicTransportIcon = new H.map.Icon(svgMarker);
+
 
             var style = new H.map.Style('https://kuberaspeaking.github.io/HouseHunting/pink.yaml','https://js.api.here.com/v3/3.1/styles/omv/');
 
@@ -63,6 +66,8 @@
             posMarker = new H.map.Marker(myPos);
 
             posMarker.setData("HERE Berlin");
+
+            isolineTransit(myPos);
             
             // Add the marker to the map 
 
@@ -83,6 +88,7 @@
                     rent:rentInput.value 
                 };
                 houses.push( housesInput);
+                dispHouses();
                 
                 // console.log(houses)
                 // geocoder.geocode({ searchText:houses[houses.length].address}, onResult1.bind(this, houses[houses.length]), function(e) {
@@ -94,9 +100,9 @@
             function addPublicTransport(position){
                 let api = "https://transit.ls.hereapi.com/v3/route.json",
                 apiKey = "KUFJZlg1QpKnIqlMlodmDXeu7nNktr2-caRXFHpxgSI",
-                dep = myLoc,
-                arr = position.lat+','+position.lng,
-                routing = "tt",
+                dep = position.lat+','+position.lng,
+                arr =  myLoc,
+                routing = "all",
                 time = "2020-01-30T17:00:00",
                 modes = "subway,city_train,light_rail",
 
@@ -105,7 +111,29 @@
                 fetch(url)
                 .then(response => response.json())
                 .then(response => {
-                    // console.log(response)
+                    var publicRoute = response.Res.Connections.Connection[0];
+                    var transitSections = publicRoute.Sections.Sec;
+                    var routePoints;
+                    var linesString;
+                    var enterTx, exitTx;
+
+                    console.log(transitSections[3]);
+
+                    linesString = new H.geo.LineString();
+                    for(i = 1; i < transitSections.length-1; i++){
+                        enterTx = {lat:transitSections[i].Arr.Stn.y, lng:transitSections[i].Arr.Stn.x};
+                        exitTx = {lat:transitSections[i].Dep.Stn.y, lng:transitSections[i].Dep.Stn.x};
+
+                        linesString.pushPoint(enterTx);
+                        linesString.pushPoint(exitTx);
+                    }
+                    var routeLine = new H.map.Polyline(linesString, {
+                        style: { strokeColor: 'blue', lineWidth: 3 }
+                    });
+                    map.addObject(routeLine);
+
+
+
                 }, error => {
                     console.error(error);
                 });
@@ -118,7 +146,7 @@
             
             // Define a callback function to process the geocoding response:
             var onResult1= function(index,result) {
-                console.log(index)
+                // console.log(index)
             var data,
                 position,
                 marker;
@@ -134,6 +162,7 @@
             marker = new H.map.Marker(position);
             marker.setData(data);
             map.addObject(marker);
+            isolineTransit(position);
             addPublicTransport(position);
             };
 
@@ -162,73 +191,17 @@
             // dispHouses();
             addInfoBubble(map);
 
-    
-            
-            // var routingParams = {
-            //     'mode': 'fastest;car;traffic:enabled',
-            //     'start': myLoc,
-            //     'range': '7000', // 10 (10x60secs) minutes of driving 
-            //     'rangetype': 'distance'
-            // };
 
-            // // Define a callback function to process the isoline response.
-
-            // var onResult = function(result) {
-
-            //     // console.log(result);
-            //     var center = new H.geo.Point(
-            //         result.response.center.latitude,
-            //         result.response.center.longitude),
-            //     isolineCoords = result.response.isoline[0].component[0].shape,
-            //     linestring = new H.geo.LineString(),
-            //     isolinePolygon,
-            //     isolineCenter;
-
-            //     // Add the returned isoline coordinates to a linestring:
-
-            //     isolineCoords.forEach(function(coords) {
-            //         linestring.pushLatLngAlt.apply(linestring, coords.split(','))
-            //     })
-
-            //     console.log(linestring)
-
-            //     // Create a polygon and a marker representing the isoline:
-
-            //     isolinePolygon = new H.map.Polygon(linestring);
-                
-            //     // Add the polygon and marker to the map:
-
-            //     map.addObject(isolinePolygon);
-
-            //     // Center and zoom the map so that the whole isoline polygon is
-            //     // in the viewport:
-
-            //     map.getViewModel().setLookAtData({bounds: isolinePolygon.getBoundingBox()});
-            // }
-
-            // // Get an instance of the routing service: 
-
-            // var router = platform.getRoutingService();
-
-            // // Call the Routing API to calculate an isoline:
-
-            // router.calculateIsoline(
-            //     routingParams,
-            //     onResult,
-            //     function(error) {
-            //         alert(error.message)
-            //     }
-            // );
 
 
             // // Isoline for transit
 
-            function isolineTransit(){
+            function isolineTransit(position){
 
                 let api = "https://transit.ls.hereapi.com/v3/isochrone.json",
                 apiKey = "KUFJZlg1QpKnIqlMlodmDXeu7nNktr2-caRXFHpxgSI",
-                center = myLoc,
-                maxDur = "20",
+                center = position.lat+','+position.lng,
+                maxDur = "5",
                 time = "2020-01-30T17:00:00",
 
                 url = `${api}?apiKey=${apiKey}&center=${center}&maxDur=${maxDur}&time=${time}`;
@@ -236,49 +209,27 @@
                 fetch(url)
                 .then(response => response.json())
                 .then(response => {
-                    console.log(response)
+                    // console.log(response)
 
-                    var isolineCoords = response.Res.Isochrone.IsoDest,
-                        linestring = new H.geo.LineString(),
-                        isolinePolygon;
-                    var points=[];
+                    var isoDest = response.Res.Isochrone.IsoDest;
+                    var points;
                     var station; 
                     var stationName;
                     
 
-                    for (i= 0; i < isolineCoords.length; i++){
-                        if(isolineCoords[i].duration == "PT20M"){
-                            linestring.pushPoint({lat:isolineCoords[i].Stn[0].y, lng:isolineCoords[i].Stn[0].x});
-
-
-                            // station = new H.map.Marker({lat:isolineCoords[i].Stn[0].y, lng:isolineCoords[i].Stn[0].x});
-                            // stationName = 
-                            // 'name: '+isolineCoords[i].Stn[0].name+
-                            // '\n'+
-                            // 'time: '+isolineCoords[i].duration.charAt(2);
-                            // station.setData(stationName);
-                            // map.addObject(station);
-
-                        }
-                        
+                    for (i= 0; i < isoDest.length; i++){
+                        points = {lat:isoDest[i].Stn[0].y, lng:isoDest[i].Stn[0].x};
+                        station = new H.map.Marker(points, {icon: publicTransportIcon});
+                        // console.log(station);
+                        stationName = 
+                        'name: '+isoDest[i].Stn[0].name+
+                        '\n'+
+                        'time: '+isoDest[i].duration.charAt(2)+isoDest[i].duration.charAt(3)+' minutes';
+                        // console.log(isoDest[i].duration)
+                        station.setData(stationName);
+                        map.addObject(station);
+                        map.setCenter(points);
                     }
-
-                    // points.forEach(function(point) {
-                    //     linestring.pushPoint(point);
-                    // });
-
-
-
-                    // console.log(points);
-
-
-
-                    // console.log(isolineCoords[0].Stn[0].x,isolineCoords[0].Stn[0].y);
-                    // Create a polygon and a marker representing the isoline:
-
-                    isolinePolyline = new H.map.Polygon(linestring, { style: { lineWidth: 10 }});
-                    
-                    map.addObject(isolinePolyline);
 
 
                 }, error => {
@@ -287,7 +238,7 @@
 
             }
 
-            isolineTransit();
+            
         </script>
     </body>
 </html>

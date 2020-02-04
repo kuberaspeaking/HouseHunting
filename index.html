@@ -117,20 +117,20 @@
                     var linesString;
                     var enterTx, exitTx;
 
-                    console.log(transitSections[3]);
+                    console.log(transitSections);
 
-                    linesString = new H.geo.LineString();
-                    for(i = 1; i < transitSections.length-1; i++){
-                        enterTx = {lat:transitSections[i].Arr.Stn.y, lng:transitSections[i].Arr.Stn.x};
-                        exitTx = {lat:transitSections[i].Dep.Stn.y, lng:transitSections[i].Dep.Stn.x};
+                    // linesString = new H.geo.LineString();
+                    // for(i = 1; i < transitSections.length-1; i++){
+                    //     enterTx = {lat:transitSections[i].Arr.Stn.y, lng:transitSections[i].Arr.Stn.x};
+                    //     exitTx = {lat:transitSections[i].Dep.Stn.y, lng:transitSections[i].Dep.Stn.x};
 
-                        linesString.pushPoint(enterTx);
-                        linesString.pushPoint(exitTx);
-                    }
-                    var routeLine = new H.map.Polyline(linesString, {
-                        style: { strokeColor: 'blue', lineWidth: 3 }
-                    });
-                    map.addObject(routeLine);
+                    //     linesString.pushPoint(enterTx);
+                    //     linesString.pushPoint(exitTx);
+                    // }
+                    // var routeLine = new H.map.Polyline(linesString, {
+                    //     style: { strokeColor: 'blue', lineWidth: 3 }
+                    // });
+                    // map.addObject(routeLine);
 
 
 

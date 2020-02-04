@@ -47,6 +47,8 @@
             var mapEvents = new H.mapevents.MapEvents(map);
 
             var behavior = new H.mapevents.Behavior(mapEvents);
+            // Get an instance of the routing service:
+            var router = platform.getRoutingService();
 
             var svgMarker = '<svg width="50" height="50" xmlns="http://www.w3.org/2000/svg"> <circle stroke="black" fill="#227305" cx="15" cy="15" r="12"/><text x="15" y="20" font-size="12pt" font-family="Arial" font-weight="bold" text-anchor="middle" fill="white">S</text></svg>';
 
@@ -97,47 +99,69 @@
 
             }
 
+
+
+            
+
+            // Define a callback function to process the routing response:
+            var onRoute = function(result) {
+            var route,
+                routeShape,
+                linestring;
+            if(result.response.route) {
+            // Pick the first route from the response:
+            route = result.response.route[0];
+            // Pick the route's shape:
+            routeShape = route.shape;
+
+            // Create a linestring to use as a point source for the route line
+            linestring = new H.geo.LineString();
+
+            // Push all the points in the shape into the linestring:
+            routeShape.forEach(function(point) {
+                var parts = point.split(',');
+                linestring.pushLatLngAlt(parts[0], parts[1]);
+            });
+
+            // Retrieve the mapped positions of the requested waypoints:
+            startPoint = route.waypoint[0].mappedPosition;
+            endPoint = route.waypoint[1].mappedPosition;
+
+            // Create a polyline to display the route:
+            var routeLine = new H.map.Polyline(linestring, {
+                style: { strokeColor: 'blue', lineWidth: 3 }
+            });
+
+
+            // Add the route polyline and the two markers to the map:
+            map.addObject(routeLine);
+
+    
+            }
+            };
+
             function addPublicTransport(position){
-                let api = "https://transit.ls.hereapi.com/v3/route.json",
-                apiKey = "KUFJZlg1QpKnIqlMlodmDXeu7nNktr2-caRXFHpxgSI",
-                dep = position.lat+','+position.lng,
-                arr =  myLoc,
-                routing = "all",
-                time = "2020-01-30T17:00:00",
-                modes = "subway,city_train,light_rail",
 
-                url = `${api}?apiKey=${apiKey}&dep=${dep}&arr=${arr}&routing=${routing}&time=${time}&modes=${modes}`;
-
-                fetch(url)
-                .then(response => response.json())
-                .then(response => {
-                    var publicRoute = response.Res.Connections.Connection[0];
-                    var transitSections = publicRoute.Sections.Sec;
-                    var routePoints;
-                    var linesString;
-                    var enterTx, exitTx;
-
-                    console.log(transitSections);
-
-                    // linesString = new H.geo.LineString();
-                    // for(i = 1; i < transitSections.length-1; i++){
-                    //     enterTx = {lat:transitSections[i].Arr.Stn.y, lng:transitSections[i].Arr.Stn.x};
-                    //     exitTx = {lat:transitSections[i].Dep.Stn.y, lng:transitSections[i].Dep.Stn.x};
-
-                    //     linesString.pushPoint(enterTx);
-                    //     linesString.pushPoint(exitTx);
-                    // }
-                    // var routeLine = new H.map.Polyline(linesString, {
-                    //     style: { strokeColor: 'blue', lineWidth: 3 }
-                    // });
-                    // map.addObject(routeLine);
-
-
-
-                }, error => {
-                    console.error(error);
+                // Create the parameters for the routing request:
+                var routingParameters = {
+                    // The routing mode:
+                    'mode': 'fastest;publicTransport',
+                    // The start point of the route:
+                    'waypoint0': myLoc,
+                    // The end point of the route:
+                    'waypoint1': position.lat+','+position.lng,
+                    // To retrieve the shape of the route we choose the route
+                    "routeattributes": 'waypoints,summary,shape,legs',
+                    'representation': 'display'
+                 };
+                // Call calculateRoute() with the routing parameters,
+                // the callback and an error callback function (called if a
+                // communication error occurs):
+                router.calculateRoute(routingParameters, onRoute,
+                function(error) {
+                    alert(error.message);
                 });
-
+                
 
             }
 

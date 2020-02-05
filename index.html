@@ -16,7 +16,7 @@
             <h3>Please enter data</h3> <br>
             Address: <input id="address" type="text" size="25"/><br><br>
             Warm Rent: <input id="rent" type="text" size="22"/><br><br><br>
-            <input type="button" value="Display houses" onclick="insert()"/>
+            <input type="button" value="Display houses" onclick="dispHouses()"/>
             <!-- <input type="button" value="Show Route" onclick="addPublicTransport()" /> -->
         </form>
         <div id="map" style= "float: right; width: 80vw; height: 90vh; background: #39B6B3;" ></div>
@@ -31,6 +31,8 @@
             var defaultLayers = platform.createDefaultLayers();
             var myPos = {lat: 52.53086, lng: 13.38474};
             var myLoc = myPos.lat + ',' + myPos.lng;
+            var betahausPos = {lat:52.50665,lng:13.39162};
+            var betaLoc = betahausPos.lat+','+betahausPos.lng;
 
             // Instantiate (and display) a map object:
 
@@ -52,7 +54,23 @@
 
             var svgMarker = '<svg width="50" height="50" xmlns="http://www.w3.org/2000/svg"> <circle stroke="black" fill="#227305" cx="15" cy="15" r="12"/><text x="15" y="20" font-size="12pt" font-family="Arial" font-weight="bold" text-anchor="middle" fill="white">S</text></svg>';
 
+            var hereMarker = '<svg width="30" height="30" ' +
+                            'xmlns="http://www.w3.org/2000/svg">' +
+                            '<rect stroke="white" fill="#605094" x="1" y="1" width="30" ' +
+                            'height="30" /><text x="15" y="22" font-size="14pt" ' +
+                            'font-family="Arial" font-weight="bold" text-anchor="middle" ' +
+                            'fill="white">H</text></svg>';
+
+            var betahauseMarkup ='<svg width="30" height="30" ' +
+                            'xmlns="http://www.w3.org/2000/svg">' +
+                            '<rect stroke="white" fill="#000000" x="2" y="2" width="30" ' +
+                            'height="30" /><text x="15" y="22" font-size="14pt" ' +
+                            'font-family="Arial" font-weight="bold" text-anchor="middle" ' +
+                            'fill="white">b</text></svg>';
+
             var publicTransportIcon = new H.map.Icon(svgMarker);
+            var hereIcon = new H.map.Icon(hereMarker);
+            var betahauseIcon = new H.map.Icon(betahauseMarkup);
 
 
             var style = new H.map.Style('https://kuberaspeaking.github.io/HouseHunting/pink.yaml','https://js.api.here.com/v3/3.1/styles/omv/');
@@ -65,15 +83,33 @@
 
             // create a marker object 
 
-            posMarker = new H.map.Marker(myPos);
+            posMarker = new H.map.Marker(myPos,{icon : hereIcon});
 
             posMarker.setData("HERE Berlin");
+
 
             isolineTransit(myPos);
             
             // Add the marker to the map 
 
             map.addObject(posMarker);
+            //// betahause marker
+
+
+            betaMarker = new H.map.Marker(betahausPos,{icon : betahauseIcon});
+
+            betaMarker.setData("betahause Kreuzberg");
+
+
+            isolineTransit(betahausPos);
+            
+            // Add the marker to the map 
+
+            map.addObject(betaMarker);
+
+
+
+
 
             // Create the parameters for the geocoding request:
             var houses= [];
@@ -82,22 +118,22 @@
 
             
             
-            function insert() {
+            // function insert() {
 
-                // console.log(housesInput);
-                var housesInput={
-                    address:addressInput.value,
-                    rent:rentInput.value 
-                };
-                houses.push( housesInput);
-                dispHouses();
+            //     // console.log(housesInput);
+            //     var housesInput={
+            //         address:addressInput.value,
+            //         rent:rentInput.value 
+            //     };
+            //     houses.push( housesInput);
+            //     dispHouses();
                 
-                // console.log(houses)
-                // geocoder.geocode({ searchText:houses[houses.length].address}, onResult1.bind(this, houses[houses.length]), function(e) {
-                //     alert(e);
-                // });
+            //     // console.log(houses)
+            //     // geocoder.geocode({ searchText:houses[houses.length].address}, onResult1.bind(this, houses[houses.length]), function(e) {
+            //     //     alert(e);
+            //     // });
 
-            }
+            // }
 
 
 
@@ -105,14 +141,19 @@
 
             // Define a callback function to process the routing response:
             var onRoute = function(result) {
+            console.log(result)
             var route,
                 routeShape,
-                linestring;
+                linestring,
+                routeTime, 
+                endPoint;
             if(result.response.route) {
             // Pick the first route from the response:
             route = result.response.route[0];
             // Pick the route's shape:
             routeShape = route.shape;
+            routeTime = parseInt(route.summary.travelTime/60);
+            endPoint = {lat:route.waypoint[1].mappedPosition.latitude,lng:route.waypoint[1].mappedPosition.longitude};
 
             // Create a linestring to use as a point source for the route line
             linestring = new H.geo.LineString();
@@ -123,18 +164,29 @@
                 linestring.pushLatLngAlt(parts[0], parts[1]);
             });
 
-            // Retrieve the mapped positions of the requested waypoints:
-            startPoint = route.waypoint[0].mappedPosition;
-            endPoint = route.waypoint[1].mappedPosition;
-
             // Create a polyline to display the route:
             var routeLine = new H.map.Polyline(linestring, {
                 style: { strokeColor: 'blue', lineWidth: 3 }
             });
 
+            // routeLine.setZIndex(10);
+
+            // routeLine.setData(routeTime);
+
 
             // Add the route polyline and the two markers to the map:
             map.addObject(routeLine);
+
+            var data = 
+            'address: '+addressInput.value+
+            '\n'+
+            'rent: '+rentInput.value+
+            '\n'+
+            "Time taken: "+ routeTime+' mins';
+
+            marker = new H.map.Marker(endPoint);
+            marker.setData(data);
+            map.addObject(marker);
 
     
             }
@@ -169,35 +221,30 @@
 
             
             // Define a callback function to process the geocoding response:
-            var onResult1= function(index,result) {
+            var onResult1= function(result) {
                 // console.log(index)
             var data,
                 position,
-                marker;
+                marker,
+                routeTime;
             // Add a marker for each location found
             position = {
             lat: result.Response.View[0].Result[0].Location.DisplayPosition.Latitude,
             lng: result.Response.View[0].Result[0].Location.DisplayPosition.Longitude
             };
-            data = 
-            'address: '+index.address+
-            '\n'+
-            'rent: '+index.rent;
-            marker = new H.map.Marker(position);
-            marker.setData(data);
-            map.addObject(marker);
             isolineTransit(position);
             addPublicTransport(position);
+            console.log(routeTime);
+            
             };
 
             
             // Display marker on map for each address
             function dispHouses() {
-                for (i=0; i<houses.length; i++){
-                    geocoder.geocode({ searchText:houses[i].address}, onResult1.bind(this, houses[i]), function(e) {
-                        alert(e);
-                    });
-                }
+                geocoder.geocode({ searchText:addressInput.value}, onResult1, function(e) {
+                    alert(e);
+                });
+    
             }
 
             function addInfoBubble(map){
@@ -206,6 +253,9 @@
                     // read custom data
                     content: evt.target.getData()
                 });
+                console.log(evt.target.getData());
+
+
                     // show info bubble
                 ui.addBubble(bubble);
                 }, false);
@@ -234,26 +284,31 @@
                 .then(response => response.json())
                 .then(response => {
                     // console.log(response)
+                    if(response.Res.Isochrone!= null){
+                        var isoDest = response.Res.Isochrone.IsoDest;
+                        var points;
+                        var station; 
+                        var stationName;
+                        
 
-                    var isoDest = response.Res.Isochrone.IsoDest;
-                    var points;
-                    var station; 
-                    var stationName;
+                        for (i= 0; i < isoDest.length; i++){
+                            points = {lat:isoDest[i].Stn[0].y, lng:isoDest[i].Stn[0].x};
+                            station = new H.map.Marker(points, {icon: publicTransportIcon});
+                            // console.log(station);
+                            stationName = 
+                            'name: '+isoDest[i].Stn[0].name+
+                            '\n'+
+                            'time: '+isoDest[i].duration.charAt(2)+isoDest[i].duration.charAt(3)+' minutes';
+                            // console.log(isoDest[i].duration)
+                            station.setData(stationName);
+                            map.addObject(station);
+                            map.setCenter(points);
+                        }
                     
-
-                    for (i= 0; i < isoDest.length; i++){
-                        points = {lat:isoDest[i].Stn[0].y, lng:isoDest[i].Stn[0].x};
-                        station = new H.map.Marker(points, {icon: publicTransportIcon});
-                        // console.log(station);
-                        stationName = 
-                        'name: '+isoDest[i].Stn[0].name+
-                        '\n'+
-                        'time: '+isoDest[i].duration.charAt(2)+isoDest[i].duration.charAt(3)+' minutes';
-                        // console.log(isoDest[i].duration)
-                        station.setData(stationName);
-                        map.addObject(station);
-                        map.setCenter(points);
-                    }
+                    } 
+                    else {
+                        console.log("No Public transit stations were found with the given time limit")
+                    }  
 
 
                 }, error => {

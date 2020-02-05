@@ -11,7 +11,7 @@
         <link rel="stylesheet" type="text/css" href="https://js.api.here.com/v3/3.1/mapsjs-ui.css"/>
     </head>
     <body>
-        <h1 style="text-align: center;">House Hunting 2020</h1style="text-align: center;"></h1>
+        <h1 style="text-align: center;">House Hunting 2020</h1>
         <form style="float: left">
             <h3>Please enter data</h3> <br>
             Address: <input id="address" type="text" size="25"/><br><br>
@@ -69,7 +69,7 @@
                             'fill="white">b</text></svg>';
 
             var publicTransportIcon = new H.map.Icon(svgMarker);
-            var hereIcon = new H.map.Icon(hereMarker);
+            var hereIcon = new H.map.Icon(hereMarker,{stickHeight:"1000"},{stickColor:"red"});
             var betahauseIcon = new H.map.Icon(betahauseMarkup);
 
 

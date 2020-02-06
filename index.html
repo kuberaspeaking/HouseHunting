@@ -234,7 +234,7 @@
             };
             isolineTransit(position);
             addPublicTransport(position);
-            console.log(routeTime);
+            // console.log(routeTime);
             
             };
 
@@ -247,18 +247,21 @@
     
             }
 
-            function addInfoBubble(map){
-                map.addEventListener('tap', function (evt) {
+            function displayBubble(evt){
                 var bubble =  new H.ui.InfoBubble(evt.target.getGeometry(), {
                     // read custom data
                     content: evt.target.getData()
                 });
-                console.log(evt.target.getData());
+                // console.log(evt.target.getData());
 
 
                     // show info bubble
                 ui.addBubble(bubble);
-                }, false);
+
+            }
+
+            function addInfoBubble(map){
+                map.addEventListener('tap', displayBubble,false);
             }
            
 

@@ -185,6 +185,7 @@
             "Time taken: "+ routeTime+' mins';
 
             marker = new H.map.Marker(endPoint);
+            routeLine.setData(data);
             marker.setData(data);
             map.addObject(marker);
 
@@ -248,7 +249,9 @@
             }
 
             function displayBubble(evt){
-                var bubble =  new H.ui.InfoBubble(evt.target.getGeometry(), {
+                var objType = evt.target.getGeometry();
+                console.log("object type"+objType);
+                var bubble =  new H.ui.InfoBubble(objType, {
                     // read custom data
                     content: evt.target.getData()
                 });
@@ -260,13 +263,35 @@
 
             }
 
+            function displayRouteInfo(evt){
+                var objChild = evt.target.getGeometry();
+                console.log("object type"+objChild);
+
+                var parentObject = new H.map.Object();
+
+                parentObject = evt.target.getRootGroup();
+
+                console.log("parent : "+ parentObject );
+
+                // var parentObj = pointOnLine.getParentGroup();
+
+        
+                // console.log("parent"+parentObj);
+
+            }
+
             function addInfoBubble(map){
                 map.addEventListener('tap', displayBubble,false);
             }
            
+            function addPolylineInfo(map){
+                map.addEventListener('tap', displayRouteInfo,false);
+            }
+           
 
             // dispHouses();
-            addInfoBubble(map);
+            // addInfoBubble(map);
+            addPolylineInfo(map);
 
 
 

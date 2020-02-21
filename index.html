@@ -29,8 +29,8 @@
 
             // Obtain the default map types from the platform object:
             var defaultLayers = platform.createDefaultLayers();
-            var myPos = {lat: 52.53086, lng: 13.38474};
-            var myLoc = myPos.lat + ',' + myPos.lng;
+            var herePos = {lat: 52.53086, lng: 13.38474};
+            var hereLoc = herePos.lat + ',' + herePos.lng;
             var betahausPos = {lat:52.50665,lng:13.39162};
             var betaLoc = betahausPos.lat+','+betahausPos.lng;
 
@@ -41,7 +41,7 @@
                 defaultLayers.vector.normal.map,
                 {
                     zoom: 11,
-                    center: myPos
+                    center: herePos
                 });
 
             var ui = H.ui.UI.createDefault(map, defaultLayers);
@@ -83,12 +83,12 @@
 
             // create a marker object 
 
-            posMarker = new H.map.Marker(myPos,{icon : hereIcon});
+            posMarker = new H.map.Marker(herePos,{icon : hereIcon});
 
             posMarker.setData("HERE Berlin");
 
 
-            isolineTransit(myPos);
+            isolineTransit(herePos);
             
             // Add the marker to the map 
 
@@ -109,10 +109,12 @@
 
 
 
+            /// for when house adverts will be pulled from a query
+
+            // // Create the parameters for the geocoding request:
+            // var houses= [];
 
 
-            // Create the parameters for the geocoding request:
-            var houses= [];
             var addressInput=document.getElementById("address");
             var rentInput=document.getElementById("rent");
 
@@ -125,7 +127,7 @@
             //         address:addressInput.value,
             //         rent:rentInput.value 
             //     };
-            //     houses.push( housesInput);
+            //     houses.push(housesInput);
             //     dispHouses();
                 
             //     // console.log(houses)
@@ -140,20 +142,20 @@
             
 
             // Define a callback function to process the routing response:
-            var onRoute = function(result) {
-            console.log(result)
+            var onRoute = function(routeColour, result) {
+            // console.log(result.response)
             var route,
                 routeShape,
                 linestring,
-                routeTime, 
-                endPoint;
+                routeTime;
+                
             if(result.response.route) {
             // Pick the first route from the response:
             route = result.response.route[0];
             // Pick the route's shape:
             routeShape = route.shape;
+
             routeTime = parseInt(route.summary.travelTime/60);
-            endPoint = {lat:route.waypoint[1].mappedPosition.latitude,lng:route.waypoint[1].mappedPosition.longitude};
 
             // Create a linestring to use as a point source for the route line
             linestring = new H.geo.LineString();
@@ -166,51 +168,45 @@
 
             // Create a polyline to display the route:
             var routeLine = new H.map.Polyline(linestring, {
-                style: { strokeColor: 'blue', lineWidth: 3 }
+                style: { strokeColor: routeColour, lineWidth: 3 }
             });
 
-            // routeLine.setZIndex(10);
+            var routeData = 
+            "Time taken: "+ routeTime+' mins';
 
-            // routeLine.setData(routeTime);
+            routeLine.setData(routeData);
 
+            // console.log(routeLine.getData());
 
             // Add the route polyline and the two markers to the map:
             map.addObject(routeLine);
-
-            var data = 
-            'address: '+addressInput.value+
-            '\n'+
-            'rent: '+rentInput.value+
-            '\n'+
-            "Time taken: "+ routeTime+' mins';
-
-            marker = new H.map.Marker(endPoint);
-            routeLine.setData(data);
-            marker.setData(data);
-            map.addObject(marker);
 
     
             }
             };
 
-            function addPublicTransport(position){
+            function addPublicTransport(position, officePos, routeColour){
 
                 // Create the parameters for the routing request:
                 var routingParameters = {
                     // The routing mode:
                     'mode': 'fastest;publicTransport',
                     // The start point of the route:
-                    'waypoint0': myLoc,
+                    'waypoint0': position.lat+','+position.lng,
                     // The end point of the route:
-                    'waypoint1': position.lat+','+position.lng,
+                    'waypoint1': officePos,
+                    'PublicTransportType': 'railMetro, railMetroRegional railLight, railRegional, trainRegional, trainIntercity, trainHighSpeed, monoRail',
+                    
+                    'departure': '2020-03-02T08:00:00',
                     // To retrieve the shape of the route we choose the route
                     "routeattributes": 'waypoints,summary,shape,legs',
-                    'representation': 'display'
+                    'combineChange': 'true',
+                    'representation': 'navigation'
                  };
                 // Call calculateRoute() with the routing parameters,
                 // the callback and an error callback function (called if a
                 // communication error occurs):
-                router.calculateRoute(routingParameters, onRoute,
+                router.calculateRoute(routingParameters, onRoute.bind(this,routeColour),
                 function(error) {
                     alert(error.message);
                 });
@@ -233,8 +229,21 @@
             lat: result.Response.View[0].Result[0].Location.DisplayPosition.Latitude,
             lng: result.Response.View[0].Result[0].Location.DisplayPosition.Longitude
             };
+
+            var data = 
+            'address: '+addressInput.value+
+            '\n'+
+            'rent: '+rentInput.value;
+
+            marker = new H.map.Marker(position);
+            
+            marker.setData(data);
+            map.addObject(marker);
+
             isolineTransit(position);
-            addPublicTransport(position);
+
+            addPublicTransport(position, hereLoc, "purple");
+            addPublicTransport(position, betaLoc, "black");
             // console.log(routeTime);
             
             };
@@ -250,7 +259,7 @@
 
             function displayBubble(evt){
                 var objType = evt.target.getGeometry();
-                console.log("object type"+objType);
+                // console.log("object type"+objType);
                 var bubble =  new H.ui.InfoBubble(objType, {
                     // read custom data
                     content: evt.target.getData()
@@ -263,35 +272,72 @@
 
             }
 
-            function displayRouteInfo(evt){
-                var objChild = evt.target.getGeometry();
-                console.log("object type"+objChild);
-
-                var parentObject = new H.map.Object();
-
-                parentObject = evt.target.getRootGroup();
-
-                console.log("parent : "+ parentObject );
-
-                // var parentObj = pointOnLine.getParentGroup();
-
-        
-                // console.log("parent"+parentObj);
-
-            }
+            // function displayPolyBubble(polyBubble,ev){
+            //     // the event listener, could obviously be attached directly to the polyline – depends on the usecase
+            //     if (ev.target instanceof H.map.Polyline) {
+            //         let dispData = ev.target.getData();
+            //         console.log(dispData);
+            //         let pointer = ev.pointers[0];
+            //         // calculate the position of the infobubble and create one if needed
+            //         let position = map.screenToGeo(pointer.viewportX, pointer.viewportY);
+            //         if(!polyBubble){
+            //             polyBubble = new H.ui.InfoBubble(position, {
+            //             content: dispData
+            //         });
+            //         ui.addBubble(polyBubble);
+            //         polyBubble.setPosition(position);
+            //         }
+            //     }
+            // }
+            
 
             function addInfoBubble(map){
                 map.addEventListener('tap', displayBubble,false);
+                // let polyBubble;
+                // // alternatively it could be 'tap' or any other event
+                // map.addEventListener('pointermove',displayPolyBubble.bind(this,polyBubble));
+
+
+                let polyBubble;
+ 
+                // alternatively it could be 'tap' or any other event
+                map.addEventListener('pointermove', (ev) => {
+                    
+                // the event listener, could obviously be attached directly to the polyline – depends on the usecase
+                if (ev.target instanceof H.map.Polyline) {
+                    let pointer = ev.pointers[0];
+                    // calculate the position of the infobubble and create one if needed
+                    let position = map.screenToGeo(pointer.viewportX, pointer.viewportY); 
+                    let dispData = ev.target.getData();
+                    
+                    polyBubble = new H.ui.InfoBubble(position, {content: dispData});
+                    ui.addBubble(polyBubble);
+                    // re-open infobubble if it was closed
+                    if (polyBubble.getState() === H.ui.InfoBubble.State.CLOSED) {
+                        polyBubble.setState(H.ui.InfoBubble.State.OPEN);
+                        // set the position
+                        polyBubble.setPosition(position);
+                    }
+                    
+
+                    // polyBubble.setPosition(position);if (polyBubble.position instanceof H.map.Polyline){
+                    //     if (polyBubble.getState() === H.ui.InfoBubble.State.OPEN) {
+                    //         polyBubble.setState(H.ui.InfoBubble.State.CLOSED);
+                    //     } 
+                    // }
+
+
+                }
+                });
+                                
             }
-           
-            function addPolylineInfo(map){
-                map.addEventListener('tap', displayRouteInfo,false);
-            }
+
            
 
             // dispHouses();
-            // addInfoBubble(map);
-            addPolylineInfo(map);
+            addInfoBubble(map);
+
+            
 
 
 
